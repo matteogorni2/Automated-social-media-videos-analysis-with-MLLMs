@@ -8,7 +8,7 @@ This repository contains the complete codebase for a master's thesis project foc
 - Enable quantitative analysis of algorithmic curation effects on self-objectification
 
 ### Key Features
-✅ **Offline-capable inference** (`HF_HUB_OFFLINE=1`) for restricted/HPC environments  
+✅ **Offline-capable inference** for restricted/HPC environments  
 ✅ **Multi-GPU parallelization** via Accelerate + SLURM  
 ✅ **Structured JSON output** 
 ✅ **Singularity containerization** for reproducible dependencies  
@@ -16,6 +16,7 @@ This repository contains the complete codebase for a master's thesis project foc
 ✅ **Post-hoc analysis notebook** for statistical exploration of results  
 
 ### Repo Structure 
+'''text
 Automated-social-media-videos-analysis-with-MLLMs/
 ├── thesis_code/
 │   ├── qwen_inference.py        # Core inference: video → JSON annotation
@@ -31,3 +32,4 @@ Automated-social-media-videos-analysis-with-MLLMs/
 ├── dissertation.pdf             # Full thesis document
 │
 └── README.md                    # This file
+'''
