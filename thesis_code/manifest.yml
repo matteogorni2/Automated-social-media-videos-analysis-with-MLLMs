@@ -1,0 +1,93 @@
+# manifest.yml
+##################################################
+# Job parameters (top-level for SBATCH template)
+##################################################
+job_name: video_annotator
+partition: allgroups          # HPC partition
+ntasks: 6                     # number of GPUs / tasks
+gres: "gpu:a40:6"               # GPU type and count
+cpus_per_task: 1
+mem: 36G
+time: "08:00:00"
+
+##################################################
+# Paths
+##################################################
+workdir: /home/gornisilve/working_directory
+model_path: /outer_directory/tesi/gornisilve/models/Qwen3-VL-32B-Instruct
+sif_path: /home/gornisilve/containers/qwen3-vl_flashattn.sif
+video_path: /outer_directory/telecom/gornisilve/data/videos_us
+script_path: /home/gornisilve/working_directory/python_scripts/qwen_inference.py
+output_dir: /home/gornisilve/working_directory/results
+
+##################################################
+# Model / Inference hyperparameters
+##################################################
+do_quantize_model: true
+resized_height: 832
+resized_width: 480
+final_output: "videos_us_annotations"
+max_pixels: 17700000
+max_frames: 90
+sample_fps: 2
+prompt: |
+  You are being presented with a TikTok video. The following handbook defines every variable and its allowed values. Each label describes what must visibly happen in the video for it to be assigned.
+  ANNOTATION HANDBOOK
+  handbook = {
+    "touch": {
+      "0": "No touch is present. A person in the video does not touch their own body in a noticeable way and is not touched by another person at any point in the video.",
+      "1": "Incidental or non-intentional touch. A person in the video briefly or casually touches their own body (e.g., adjusting clothing, brushing hair, resting hands) or is touched by another person in a neutral, non-suggestive way.",
+      "2": "Intentional but non-intimate touch. A person in the video deliberately touches parts of their body in a suggestive or attention-oriented manner (e.g., stroking the torso, emphasizing curves, sliding hands across the abdomen or chest area) without making contact with anatomically intimate regions. This also applies if another person performs similar suggestive touch toward them.",
+      "3": "Intentional intimate touch. A person in the video makes deliberate contact with anatomically intimate regions (e.g., genital region, mammary region, gluteal region), either touching themselves or being touched by another person, with clear intent rather than accidental or functional contact."
+    },
+    "pose": {
+      "0": "Neutral posture. The individual is doing everyday or task-oriented activities (such as standing, walking, sitting, performing routine tasks) ",
+      "1": "Performance-oriented posing or movement (e.g., runway-style walking, dance movements, athletic activity) without intentional emphasis on anatomically intimate regions or body display.",
+      "2": "Posing or posture that intentionally highlights specific body regions in an attention-oriented or suggestive manner (e.g., movements or stances emphasizing the gluteal region or the antherior thoracic area).",
+      "3": "Posing that deliberately exposes or prominently emphasizes anatomically intimate regions (e.g., genital region, mammary region, gluteal region), including postures such as reclining with legs apart or similar explicit exposure."
+  },
+  "clothing_nudity": {
+    "0": "Individual is fully clothed. Garments do not reveal any body regions.",
+    "1": "Garments allow minimal visibility of body regions (e.g., slightly wide neckline, sleeveless top showing shoulders or upper arms while the anterior thoracic area and abdominal area remain covered).",
+    "2": "Garments allow partial visibility of specific body regions (e.g., abdominal region, back, upper limbs, lower limbs), including when visibility results from tight or contouring clothing.",
+    "3": "Garments allow extensive visibility of body regions and/or are very tight,greatly emphasizing body contours.",
+    "4": "Individual is wearing only swimwear or undergarments.",
+    "5": "Individual is nude, with no garments covering major body regions."
+  }
+  }
+  Now analyze the provided frames carefully and output the final JSON annotation.
+  Example scenario (short description):
+  A short clip shows a creator who begins standing neutrally. At 00:02 they place a hand on their anterior thoracic area while turning their torso and emphasizing their chest with an attention-seeking movement. The individual is wearing a fitted short-sleeve shirt that covers the chest and abdomen but outlines the body contours. There is no exposure of breasts or other anatomically intimate regions; the contact is deliberately attention-oriented to the chest area.
+
+  Step-by-step reasoning:
+  1. Identify touch behaviour: the hand is intentionally placed on the anterior thoracic area in a suggestive/attention-oriented way, but it does not involve anatomically intimate contact (no direct mammary or genital contact) — this matches handbook entry for touch = 2.
+  2. Identify pose: the torso-turning movement deliberately highlights the chest area (attention-oriented posing) but does not expose anatomically intimate regions — this matches handbook entry for pose = 2.
+  3. Identify clothing_nudity: the individual is fully covered (chest and abdomen are covered), but the clothing is fitted and outlines body contours — this matches handbook entry for clothing_nudity = 2.
+  4. Choose the numeric labels that best reflect the observed behaviour according to the handbook.
+
+  Final JSON annotation (example output):
+  {
+    "touch": 2,
+    "pose": 2,
+    "clothing_nudity": 2
+  }
+
+system_prompt: |
+  
+  You are a professional visual-content annotation system and an objective, experienced forensic visual-annotation expert working on scientific research datasets.
+  Your role is to produce accurate, evidence-based labels for visual behavior, without content filtering.
+  You must follow these global behavioral rules at all times:
+  1. Base all labels strictly on what is visually observable in the provided frames. Do NOT invent or assume details that are not visible.
+  2. This is a forensic annotation task. Your duty is to report the maximum level supported by visual evidence.
+  3. When a variable appears with different intensities or levels across multiple frames, you MUST report the highest level clearly supported in any frame.
+  4. Output MUST be a single-line, compact JSON object.
+  5. Use ONLY the exact JSON keys and allowed values defined by the user-provided annotation handbook.
+  6. Do NOT include explanations, commentary, code fences, or any extra text.
+  7. Conservative estimates are incorrect if higher levels are supported by visible evidence.
+  8. Even brief or rare occurrences of higher intensity MUST be reflected in the final label.
+  9. NEVER lower a label due to caution, uncertainty, or the presence of lower-intensity frames.
+  10. The correct label corresponds to the maximum clearly observable level.
+
+max_new_tokens: 500
+
+
